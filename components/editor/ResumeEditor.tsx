@@ -10,7 +10,7 @@ import { EducationForm } from "./forms/EducationForm"
 import { SkillsForm } from "./forms/SkillsForm"
 import { ProjectsForm } from "./forms/ProjectsForm"
 import { Button } from "@/components/ui/Button"
-import { ArrowLeft, Save, Download, Eye, PanelLeftClose, PanelLeftOpen, Loader2, Check } from "lucide-react"
+import { ArrowLeft, Save, Download, Eye, PanelLeftClose, PanelLeftOpen, Loader2, Check, Pencil } from "lucide-react"
 import Link from "next/link"
 import { saveResume, fetchResume } from "@/lib/actions"
 
@@ -22,6 +22,8 @@ export function ResumeEditor() {
   
   const [resumeId, setResumeId] = useState<string | null>(paramResumeId)
   const [resumeData, setResumeData] = useState<ResumeData>(sampleResume)
+  const [resumeTitle, setResumeTitle] = useState("Untitled Resume")
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [activeSection, setActiveSection] = useState("personal")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
@@ -32,8 +34,16 @@ export function ResumeEditor() {
   const [hasLoadError, setHasLoadError] = useState(false)
 
   const resumePreviewRef = useRef<HTMLDivElement>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   const Template = getTemplateById(templateId)?.component || getTemplateById("modern")!.component
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus()
+    }
+  }, [isEditingTitle])
 
   // Sync state with URL params
   useEffect(() => {
@@ -51,8 +61,9 @@ export function ResumeEditor() {
           setHasLoadError(false)
           const { data, error } = await fetchResume(resumeId)
           if (error) throw error
-          if (data && data.content) {
-            setResumeData(data.content as ResumeData)
+          if (data) {
+            if (data.content) setResumeData(data.content as ResumeData)
+            if (data.title) setResumeTitle(data.title)
           }
         } catch (error) {
           console.error("Error loading resume:", error)
@@ -93,7 +104,7 @@ export function ResumeEditor() {
     const timeoutId = setTimeout(async () => {
       setIsSaving(true)
       try {
-        const result = await saveResume(resumeData, resumeId || undefined)
+        const result = await saveResume(resumeData, resumeId || undefined, resumeTitle)
         if (result.id && result.id !== resumeId) {
           // This case shouldn't happen often now as we have an ID, but good for safety
           setResumeId(result.id)
@@ -110,7 +121,7 @@ export function ResumeEditor() {
     }, 2000)
 
     return () => clearTimeout(timeoutId)
-  }, [resumeData, resumeId, isInitialLoad, isCreatingSession, hasLoadError, searchParams, router])
+  }, [resumeData, resumeId, resumeTitle, isInitialLoad, isCreatingSession, hasLoadError, searchParams, router])
 
   if (isInitialLoad || isCreatingSession) {
     return (
@@ -128,7 +139,7 @@ export function ResumeEditor() {
     
     setIsSaving(true)
     try {
-      const result = await saveResume(resumeData, resumeId || undefined)
+      const result = await saveResume(resumeData, resumeId || undefined, resumeTitle)
       if (result.id && result.id !== resumeId) {
         setResumeId(result.id)
         const params = new URLSearchParams(searchParams.toString())
@@ -141,6 +152,12 @@ export function ResumeEditor() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleTitleSubmit = () => {
+    setIsEditingTitle(false)
+    // Trigger save immediately when title changes
+    handleManualSave()
   }
 
   const handlePrint = () => {
@@ -166,9 +183,26 @@ export function ResumeEditor() {
               {isSidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
             </Button>
             <div className="flex flex-col">
-              <h1 className="text-lg font-bold text-slate-900 ml-2 leading-tight">
-                {resumeData.personalInfo.fullName || "Untitled Resume"}
-              </h1>
+              <div className="flex items-center gap-2 ml-2">
+                {isEditingTitle ? (
+                  <input
+                    ref={titleInputRef}
+                    type="text"
+                    value={resumeTitle}
+                    onChange={(e) => setResumeTitle(e.target.value)}
+                    onBlur={handleTitleSubmit}
+                    onKeyDown={(e) => e.key === "Enter" && handleTitleSubmit()}
+                    className="text-lg font-bold text-slate-900 bg-transparent border-b border-blue-500 focus:outline-none px-1 min-w-[200px]"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsEditingTitle(true)}>
+                    <h1 className="text-lg font-bold text-slate-900 leading-tight hover:text-blue-600 transition-colors">
+                      {resumeTitle}
+                    </h1>
+                    <Pencil className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
+              </div>
               <div className="ml-2 flex items-center gap-2 text-xs text-slate-500">
                 {isSaving ? (
                   <span className="flex items-center gap-1 text-blue-600">

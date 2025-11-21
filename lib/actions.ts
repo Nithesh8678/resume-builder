@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server"
 import { ResumeData } from "@/types/resume"
 import { revalidatePath } from "next/cache"
 
-export async function saveResume(data: ResumeData, id?: string) {
+export async function saveResume(data: ResumeData, id?: string, title?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -12,11 +12,17 @@ export async function saveResume(data: ResumeData, id?: string) {
     throw new Error("User not authenticated")
   }
 
-  const resumePayload = {
+  const resumePayload: any = {
     user_id: user.id,
     content: data,
-    title: data.personalInfo.fullName ? `${data.personalInfo.fullName}'s Resume` : "Untitled Resume",
     updated_at: new Date().toISOString(),
+  }
+
+  if (title) {
+    resumePayload.title = title
+  } else if (!id) {
+    // Set default title only on creation if not provided
+    resumePayload.title = data.personalInfo.fullName ? `${data.personalInfo.fullName}'s Resume` : "Untitled Resume"
   }
 
   if (id) {
