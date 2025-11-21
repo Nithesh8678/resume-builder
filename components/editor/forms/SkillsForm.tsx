@@ -2,16 +2,21 @@
 
 import { ResumeData, Skill } from "@/types/resume"
 import { Button } from "@/components/ui/Button"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Sparkles, Loader2 } from "lucide-react"
 import { useState } from "react"
+import { generateAIContent } from "@/lib/actions"
+import { toast } from "sonner"
 
 interface SkillsFormProps {
   data: Skill[]
   onChange: (data: Skill[]) => void
+  isAiEnabled?: boolean
+  jobTitle?: string
 }
 
-export function SkillsForm({ data, onChange }: SkillsFormProps) {
+export function SkillsForm({ data, onChange, isAiEnabled, jobTitle }: SkillsFormProps) {
   const [newSkill, setNewSkill] = useState("")
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const handleAdd = (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -25,9 +30,68 @@ export function SkillsForm({ data, onChange }: SkillsFormProps) {
     onChange(data.filter((_, i) => i !== index))
   }
 
+  const handleAiSuggest = async () => {
+    if (!jobTitle) {
+      toast.error("Please enter a Job Title in Personal Info first")
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      const prompt = `Suggest 5-7 essential technical and soft skills for a ${jobTitle}.
+      
+      Rules:
+      1. Return ONLY a comma-separated list of skills.
+      2. No numbering, no bullet points.
+      3. Example output: React, TypeScript, Project Management, Communication`
+      
+      const { text, error } = await generateAIContent(prompt)
+      
+      if (error || !text) throw new Error(error || "No content generated")
+      
+      const suggestedSkills = text.split(',').map(s => s.trim()).filter(s => s)
+      
+      // Filter out duplicates that already exist
+      const existingNames = new Set(data.map(s => s.name.toLowerCase()))
+      const newSkills = suggestedSkills
+        .filter(s => !existingNames.has(s.toLowerCase()))
+        .map(name => ({ name }))
+
+      if (newSkills.length === 0) {
+        toast.info("No new skills found to add")
+      } else {
+        onChange([...data, ...newSkills])
+        toast.success(`Added ${newSkills.length} skills`)
+      }
+    } catch (error) {
+      console.error("AI Generation error:", error)
+      toast.error("Failed to generate content")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   return (
     <div className="space-y-6 p-6 bg-white rounded-lg shadow-sm border border-slate-200">
-      <h3 className="text-lg font-semibold text-slate-900">Skills</h3>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-slate-900">Skills</h3>
+        {isAiEnabled && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAiSuggest}
+            disabled={isGenerating}
+            className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+          >
+            {isGenerating ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+            ) : (
+              <Sparkles className="h-3 w-3 mr-1" />
+            )}
+            <span className="text-xs font-medium">Auto-Suggest Skills</span>
+          </Button>
+        )}
+      </div>
 
       <form onSubmit={handleAdd} className="flex gap-2">
         <input

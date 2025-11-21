@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { ResumeData } from "@/types/resume"
 import { revalidatePath } from "next/cache"
+import { model } from "./gemini"
 
 export async function saveResume(data: ResumeData, id?: string, title?: string) {
   const supabase = await createClient()
@@ -12,9 +13,9 @@ export async function saveResume(data: ResumeData, id?: string, title?: string) 
     throw new Error("User not authenticated")
   }
 
-  const resumePayload: any = {
+  const resumePayload: Record<string, unknown> = {
     user_id: user.id,
-    content: data,
+    content: data as unknown as Record<string, unknown>,
     updated_at: new Date().toISOString(),
   }
 
@@ -105,16 +106,76 @@ export async function deleteResume(id: string) {
   return { success: true, error: null }
 }
 
-import { model } from "./gemini"
-
 export async function generateAIContent(prompt: string) {
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     return { text, error: null };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating AI content:", error);
-    return { text: null, error: error.message || "Failed to generate content" };
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate content";
+    return { text: null, error: errorMessage };
+  }
+}
+
+export async function chatWithResumeAI(messages: { role: "user" | "assistant", content: string }[], currentData: ResumeData) {
+  try {
+    const systemPrompt = `You are an expert resume consultant. Your goal is to help the user build a professional resume.
+    You have access to the current resume data JSON.
+    
+    When the user provides information, you should:
+    1. Analyze it and extract relevant resume details.
+    2. Return a JSON object with the *updated* fields for the resume data.
+    3. Also return a helpful message to the user confirming what you updated or asking for more info.
+    
+    Current Resume Data:
+    ${JSON.stringify(currentData, null, 2)}
+    
+    Output Format:
+    Return a JSON object with this structure:
+    {
+      "message": "Your response to the user",
+      "data": { ...partial update for resume data... }
+    }
+    
+    If the user just says "hi" or asks a question without providing data, return null for "data".
+    Ensure the "data" matches the ResumeData structure.
+    `
+
+    // Ensure history starts with user message
+    let historyMessages = messages.slice(0, -1);
+    const firstUserIndex = historyMessages.findIndex(m => m.role === 'user');
+    
+    if (firstUserIndex !== -1) {
+      historyMessages = historyMessages.slice(firstUserIndex);
+    } else {
+      historyMessages = [];
+    }
+
+    const chatHistory = historyMessages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+    }));
+
+    const chat = model.startChat({
+        history: chatHistory,
+        generationConfig: {
+            responseMimeType: "application/json"
+        }
+    })
+
+    const lastMessage = messages[messages.length - 1].content
+    const result = await chat.sendMessage(systemPrompt + "\n\nUser: " + lastMessage)
+    const responseText = result.response.text()
+    
+    const response = JSON.parse(responseText)
+    
+    return { message: response.message, data: response.data, error: null }
+
+  } catch (error: unknown) {
+    console.error("Error in chatWithResumeAI:", error)
+    const errorMessage = error instanceof Error ? error.message : "Failed to process request";
+    return { message: null, data: null, error: errorMessage }
   }
 }

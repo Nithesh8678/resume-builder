@@ -1,23 +1,14 @@
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot" // Wait, I didn't install radix-slot. I'll just use standard props for now or install it if I really need polymorphism. I'll stick to standard for simplicity unless requested.
-// Actually, let's just make it a standard button for now to avoid extra deps unless I need them.
-
-import { cva, type VariantProps } from "class-variance-authority" // I didn't install cva either. I should probably install it for easier variant management or just write manual classes.
-// I'll write manual classes to save time on installs, or I can install cva. It's cleaner.
-// Let's install cva and tailwind-animate while I'm at it, they are good standard utils.
-// Wait, I'll just use `cn` and simple props for now to avoid "installing dependencies" loop.
 
 import { cn } from "@/lib/utils"
-import { motion, HTMLMotionProps } from "framer-motion"
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "outline" | "ghost" | "link"
   size?: "default" | "sm" | "lg" | "icon"
-  asChild?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "default", asChild = false, ...props }, ref) => {
+  ({ className, variant = "primary", size = "default", ...props }, ref) => {
     const baseStyles = "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
     
     const variants = {

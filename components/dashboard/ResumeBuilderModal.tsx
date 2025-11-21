@@ -8,6 +8,7 @@ import { saveResume } from "@/lib/actions"
 import { sampleResume } from "@/data/sampleResume"
 import { useState } from "react"
 import { toast } from "sonner"
+import { div } from "framer-motion/client"
 
 interface ResumeBuilderModalProps {
   isOpen: boolean
@@ -76,71 +77,51 @@ export function ResumeBuilderModal({ isOpen, onClose, templateId }: ResumeBuilde
                 <p className="mt-2 text-slate-500">Select the method that best suits your workflow.</p>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Manual Build */}
-                <div className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:border-blue-500 hover:shadow-lg hover:-translate-y-1">
-                  <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600">
-                    <PenTool className="h-7 w-7" />
+                <button
+                  onClick={() => handleSelect("manual")}
+                  disabled={isCreating}
+                  className="flex flex-col items-center justify-center p-6 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group text-center space-y-4"
+                >
+                  <div className="p-4 bg-slate-100 rounded-full group-hover:bg-blue-100 transition-colors">
+                    <PenTool className="h-8 w-8 text-slate-600 group-hover:text-blue-600" />
                   </div>
-                  <h3 className="mb-2 text-xl font-bold text-slate-900">Manual Build</h3>
-                  <p className="mb-6 text-sm leading-relaxed text-slate-500">
-                    Start with a blank canvas. Perfect if you have a specific layout in mind and want full control.
-                  </p>
-                  <div className="mt-auto">
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-slate-200 hover:border-blue-500 hover:text-blue-600"
-                      onClick={() => handleSelect('manual')}
-                      disabled={isCreating}
-                    >
-                      {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Start Manual"}
-                    </Button>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Manual Build</h3>
+                    <p className="text-sm text-slate-500 mt-1">Fill in the details yourself with full control.</p>
                   </div>
-                </div>
+                </button>
 
-                {/* AI-Assisted */}
-                <div className="group relative flex flex-col rounded-2xl border-2 border-blue-100 bg-blue-50/30 p-6 transition-all hover:border-blue-500 hover:shadow-lg hover:-translate-y-1">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1 text-xs font-bold text-white shadow-sm">
-                    RECOMMENDED
+                {/* AI Assisted */}
+                <button
+                  onClick={() => handleSelect("ai-assisted")}
+                  disabled={isCreating}
+                  className="flex flex-col items-center justify-center p-6 border-2 border-slate-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group text-center space-y-4"
+                >
+                  <div className="p-4 bg-slate-100 rounded-full group-hover:bg-purple-100 transition-colors">
+                    <Sparkles className="h-8 w-8 text-slate-600 group-hover:text-purple-600" />
                   </div>
-                  <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
-                    <Sparkles className="h-7 w-7" />
+                  <div>
+                    <h3 className="font-semibold text-slate-900">AI Assisted</h3>
+                    <p className="text-sm text-slate-500 mt-1">Fill forms with AI help for descriptions.</p>
                   </div>
-                  <h3 className="mb-2 text-xl font-bold text-slate-900">AI-Assisted</h3>
-                  <p className="mb-6 text-sm leading-relaxed text-slate-600">
-                    We'll guide you section by section with smart suggestions and real-time improvements.
-                  </p>
-                  <div className="mt-auto">
-                    <Button 
-                      className="w-full bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200"
-                      onClick={() => handleSelect('ai-assisted')}
-                      disabled={isCreating}
-                    >
-                      {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Start with AI"}
-                    </Button>
-                  </div>
-                </div>
+                </button>
 
                 {/* Full AI Build */}
-                <div className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:border-purple-500 hover:shadow-lg hover:-translate-y-1">
-                  <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 transition-colors group-hover:bg-purple-100">
-                    <Bot className="h-7 w-7" />
+                <button
+                  onClick={() => handleSelect("ai-chat")}
+                  disabled={isCreating}
+                  className="flex flex-col items-center justify-center p-6 border-2 border-slate-200 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-all group text-center space-y-4"
+                >
+                  <div className="p-4 bg-slate-100 rounded-full group-hover:bg-indigo-100 transition-colors">
+                    <Bot className="h-8 w-8 text-slate-600 group-hover:text-indigo-600" />
                   </div>
-                  <h3 className="mb-2 text-xl font-bold text-slate-900">Full AI Build</h3>
-                  <p className="mb-6 text-sm leading-relaxed text-slate-500">
-                    Upload your LinkedIn or existing resume, and let our AI rewrite and format it perfectly.
-                  </p>
-                  <div className="mt-auto">
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-slate-200 hover:border-purple-500 hover:text-purple-600"
-                      onClick={() => handleSelect('full-ai')}
-                      disabled={isCreating}
-                    >
-                      {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Auto-Generate"}
-                    </Button>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Full AI Build</h3>
+                    <p className="text-sm text-slate-500 mt-1">Chat with AI to build your resume entirely.</p>
                   </div>
-                </div>
+                </button>
               </div>
             </motion.div>
           </div>

@@ -2,15 +2,20 @@
 
 import { Project } from "@/types/resume"
 import { Button } from "@/components/ui/Button"
-import { Plus, Trash2, X } from "lucide-react"
+import { Plus, Trash2, X, Sparkles, Loader2 } from "lucide-react"
 import { useState } from "react"
+import { generateAIContent } from "@/lib/actions"
+import { toast } from "sonner"
 
 interface ProjectsFormProps {
   data: Project[]
   onChange: (data: Project[]) => void
+  isAiEnabled?: boolean
 }
 
-export function ProjectsForm({ data, onChange }: ProjectsFormProps) {
+export function ProjectsForm({ data, onChange, isAiEnabled }: ProjectsFormProps) {
+  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null)
+
   const handleAdd = () => {
     onChange([
       ...data,
@@ -27,7 +32,7 @@ export function ProjectsForm({ data, onChange }: ProjectsFormProps) {
     onChange(data.filter((_, i) => i !== index))
   }
 
-  const handleChange = (index: number, field: keyof Project, value: any) => {
+  const handleChange = (index: number, field: keyof Project, value: string) => {
     const newData = [...data]
     newData[index] = { ...newData[index], [field]: value }
     onChange(newData)
@@ -49,6 +54,49 @@ export function ProjectsForm({ data, onChange }: ProjectsFormProps) {
       technologies: currentTechs.filter((_, i) => i !== techIndex) 
     }
     onChange(newData)
+  }
+
+  const handleAiGenerate = async (index: number) => {
+    const project = data[index]
+    if (!project.name) {
+      toast.error("Please enter a Project Name first")
+      return
+    }
+
+    setGeneratingIndex(index)
+    try {
+      const userContext = project.description 
+        ? `Context/Keywords provided by user: "${project.description}"` 
+        : "No specific context provided.";
+      
+      const techStack = project.technologies?.length 
+        ? `Technologies used: ${project.technologies.join(", ")}`
+        : "";
+
+      const prompt = `Generate a concise project description for a project named "${project.name}".
+      ${techStack}
+      ${userContext}
+      
+      Rules:
+      1. Highlight the problem solved and the solution.
+      2. Mention technologies if provided.
+      3. Keep it to 2-3 bullet points.
+      4. Use action verbs.
+      5. Format: Start each line with a "• " character.
+      6. Return ONLY the bullet points. No intro/outro.`
+      
+      const { text, error } = await generateAIContent(prompt)
+      
+      if (error || !text) throw new Error(error || "No content generated")
+      
+      handleChange(index, "description", text)
+      toast.success("Description generated with AI")
+    } catch (error) {
+      console.error("AI Generation error:", error)
+      toast.error("Failed to generate content")
+    } finally {
+      setGeneratingIndex(null)
+    }
   }
 
   return (
@@ -93,7 +141,25 @@ export function ProjectsForm({ data, onChange }: ProjectsFormProps) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Description</label>
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-medium text-slate-700">Description</label>
+                {isAiEnabled && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleAiGenerate(index)}
+                    disabled={generatingIndex === index}
+                    className="h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    {generatingIndex === index ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : (
+                      <Sparkles className="h-3 w-3 mr-1" />
+                    )}
+                    <span className="text-xs font-medium">Generate with AI</span>
+                  </Button>
+                )}
+              </div>
               <textarea
                 value={project.description}
                 onChange={(e) => handleChange(index, "description", e.target.value)}

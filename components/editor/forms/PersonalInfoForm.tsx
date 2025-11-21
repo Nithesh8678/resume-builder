@@ -1,16 +1,57 @@
-"use client"
-
 import { ResumeData } from "@/types/resume"
+import { Button } from "@/components/ui/Button"
+import { Sparkles, Loader2 } from "lucide-react"
+import { generateAIContent } from "@/lib/actions"
+import { useState } from "react"
+import { toast } from "sonner"
 
 interface PersonalInfoFormProps {
   data: ResumeData["personalInfo"]
   onChange: (data: ResumeData["personalInfo"]) => void
+  isAiEnabled?: boolean
 }
 
-export function PersonalInfoForm({ data, onChange }: PersonalInfoFormProps) {
+export function PersonalInfoForm({ data, onChange, isAiEnabled }: PersonalInfoFormProps) {
+  const [isGenerating, setIsGenerating] = useState(false)
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     onChange({ ...data, [name]: value })
+  }
+
+  const handleAiGenerate = async () => {
+    if (!data.jobTitle) {
+      toast.error("Please enter a Job Title first")
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      const userContext = data.summary 
+        ? `Context/Keywords provided by user: "${data.summary}"` 
+        : "No specific context provided.";
+
+      const prompt = `Write a professional resume summary for a ${data.jobTitle}.
+      ${userContext}
+      
+      Rules:
+      1. Keep it concise (2-3 sentences).
+      2. Highlight key strengths and career goals.
+      3. Use professional tone.
+      4. Return ONLY the summary text.`
+      
+      const { text, error } = await generateAIContent(prompt)
+      
+      if (error || !text) throw new Error(error || "No content generated")
+      
+      onChange({ ...data, summary: text })
+      toast.success("Summary generated with AI")
+    } catch (error) {
+      console.error("AI Generation error:", error)
+      toast.error("Failed to generate content")
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   return (
@@ -87,7 +128,25 @@ export function PersonalInfoForm({ data, onChange }: PersonalInfoFormProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-slate-700">Professional Summary</label>
+        <div className="flex justify-between items-center">
+          <label className="text-sm font-medium text-slate-700">Professional Summary</label>
+          {isAiEnabled && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAiGenerate}
+              disabled={isGenerating}
+              className="h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            >
+              {isGenerating ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <Sparkles className="h-3 w-3 mr-1" />
+              )}
+              <span className="text-xs font-medium">Generate Summary</span>
+            </Button>
+          )}
+        </div>
         <textarea
           name="summary"
           value={data.summary}

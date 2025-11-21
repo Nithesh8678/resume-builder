@@ -13,12 +13,26 @@ import { Button } from "@/components/ui/Button"
 import { ArrowLeft, Save, Download, Eye, PanelLeftClose, PanelLeftOpen, Loader2, Check, Pencil } from "lucide-react"
 import Link from "next/link"
 import { saveResume, fetchResume } from "@/lib/actions"
+import { AiChatAssistant } from "./AiChatAssistant"
+import { User, Briefcase, GraduationCap, Wrench, FolderGit2 } from "lucide-react"
+
+
+type Section = "personal" | "experience" | "education" | "skills" | "projects"
+
+const sections: Record<Section, { icon: any, label: string }> = {
+  personal: { icon: User, label: "Personal" },
+  experience: { icon: Briefcase, label: "Experience" },
+  education: { icon: GraduationCap, label: "Education" },
+  skills: { icon: Wrench, label: "Skills" },
+  projects: { icon: FolderGit2, label: "Projects" },
+}
 
 export function ResumeEditor() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const templateId = searchParams.get("template") || "modern"
   const paramResumeId = searchParams.get("id")
+  const isChatMode = searchParams.get("mode") === "full-ai-build" || searchParams.get("mode") === "ai-chat"
   
   const [resumeId, setResumeId] = useState<string | null>(paramResumeId)
   const [resumeData, setResumeData] = useState<ResumeData>(sampleResume)
@@ -235,78 +249,86 @@ export function ResumeEditor() {
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar - Navigation */}
+          {/* Left Panel - Editor/Chat */}
           <div 
             className={`border-r border-slate-200 bg-white flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
-              isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0"
+              isSidebarOpen ? "w-1/2 opacity-100" : "w-0 opacity-0"
             }`}
           >
-            <nav className="p-4 space-y-1 min-w-[16rem]">
-              {[
-                { id: "personal", label: "Personal Info" },
-                { id: "experience", label: "Experience" },
-                { id: "education", label: "Education" },
-                { id: "skills", label: "Skills" },
-                { id: "projects", label: "Projects" },
-              ].map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeSection === section.id
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  {section.label}
-                </button>
-              ))}
-            </nav>
+            {isChatMode ? (
+              <AiChatAssistant 
+                data={resumeData} 
+                onUpdate={setResumeData} 
+              />
+            ) : (
+              <>
+                {/* Section Navigation */}
+                <div className="flex items-center gap-2 p-4 border-b border-slate-200 overflow-x-auto no-scrollbar">
+                  {Object.entries(sections).map(([key, { icon: Icon, label }]) => (
+                    <button
+                      key={key}
+                      onClick={() => setActiveSection(key as Section)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                        activeSection === key
+                          ? "bg-blue-50 text-blue-600"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Form Area */}
+                <div className="flex-1 overflow-y-auto bg-slate-50 p-8">
+                  <div className="max-w-2xl mx-auto">
+                    {activeSection === "personal" && (
+                      <PersonalInfoForm 
+                        data={resumeData.personalInfo} 
+                        onChange={(newData) => setResumeData({ ...resumeData, personalInfo: newData })} 
+                        isAiEnabled={searchParams.get("mode") === "ai-assisted"}
+                      />
+                    )}
+                    {activeSection === "education" && (
+                      <EducationForm 
+                        data={resumeData.education} 
+                        onChange={(newData) => setResumeData({ ...resumeData, education: newData })} 
+                        isAiEnabled={searchParams.get("mode") === "ai-assisted"}
+                      />
+                    )}
+                    {activeSection === "experience" && (
+                      <ExperienceForm 
+                        data={resumeData.experience} 
+                        onChange={(newData) => setResumeData({ ...resumeData, experience: newData })} 
+                        isAiEnabled={searchParams.get("mode") === "ai-assisted"}
+                      />
+                    )}
+                    {activeSection === "skills" && (
+                      <SkillsForm 
+                        data={resumeData.skills} 
+                        onChange={(newData) => setResumeData({ ...resumeData, skills: newData })} 
+                        isAiEnabled={searchParams.get("mode") === "ai-assisted"}
+                        jobTitle={resumeData.personalInfo.jobTitle}
+                      />
+                    )}
+                    {activeSection === "projects" && (
+                      <ProjectsForm 
+                        data={resumeData.projects} 
+                        onChange={(newData) => setResumeData({ ...resumeData, projects: newData })} 
+                        isAiEnabled={searchParams.get("mode") === "ai-assisted"}
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Middle - Form Area */}
-          <div className="flex-1 overflow-y-auto bg-slate-50 p-8">
-            <div className="max-w-2xl mx-auto">
-              {activeSection === "personal" && (
-                <PersonalInfoForm 
-                  data={resumeData.personalInfo} 
-                  onChange={(newData) => setResumeData({ ...resumeData, personalInfo: newData })} 
-                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
-                />
-              )}
-              {activeSection === "experience" && (
-                <ExperienceForm 
-                  data={resumeData.experience} 
-                  onChange={(newData) => setResumeData({ ...resumeData, experience: newData })} 
-                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
-                />
-              )}
-              {activeSection === "education" && (
-                <EducationForm 
-                  data={resumeData.education} 
-                  onChange={(newData) => setResumeData({ ...resumeData, education: newData })} 
-                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
-                />
-              )}
-              {activeSection === "skills" && (
-                <SkillsForm 
-                  data={resumeData.skills} 
-                  onChange={(newData) => setResumeData({ ...resumeData, skills: newData })} 
-                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
-                />
-              )}
-              {activeSection === "projects" && (
-                <ProjectsForm 
-                  data={resumeData.projects} 
-                  onChange={(newData) => setResumeData({ ...resumeData, projects: newData })} 
-                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Right - Live Preview */}
-          <div className="w-[50%] bg-slate-100 border-l border-slate-200 overflow-hidden flex flex-col">
+          {/* Right Panel - Live Preview */}
+          <div className={`bg-slate-100 border-l border-slate-200 overflow-hidden flex flex-col transition-all duration-300 ${
+            isSidebarOpen ? "w-1/2" : "w-full"
+          }`}>
             <div className="p-2 bg-white border-b border-slate-200 flex justify-between items-center text-xs text-slate-500 px-4">
               <span>Live Preview</span>
               <span>A4 - 100%</span>

@@ -49,8 +49,9 @@ export default function LoginPage() {
         router.push("/resume")
         router.refresh()
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An error occurred"
+      setError(errorMessage)
       Sentry.captureException(err)
     } finally {
       setLoading(false)
@@ -68,8 +69,9 @@ export default function LoginPage() {
         },
       })
       if (error) throw error
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "An error occurred"
+      setError(errorMessage)
       Sentry.captureException(err)
       setLoading(false)
     }

@@ -35,7 +35,7 @@ export function ExperienceForm({ data, onChange, isAiEnabled }: ExperienceFormPr
     onChange(data.filter((_, i) => i !== index))
   }
 
-  const handleChange = (index: number, field: keyof Experience, value: any) => {
+  const handleChange = (index: number, field: keyof Experience, value: string | boolean) => {
     const newData = [...data]
     newData[index] = { ...newData[index], [field]: value }
     onChange(newData)
@@ -50,7 +50,21 @@ export function ExperienceForm({ data, onChange, isAiEnabled }: ExperienceFormPr
 
     setGeneratingIndex(index)
     try {
-      const prompt = `Write a professional resume description for a ${exp.position} at ${exp.company}. Use bullet points and action verbs. Keep it concise.`
+      const userContext = exp.description 
+        ? `Context/Keywords provided by user: "${exp.description}"` 
+        : "No specific context provided.";
+
+      const prompt = `Generate 3-4 high-impact, ATS-friendly resume bullet points for a ${exp.position} at ${exp.company}.
+      ${userContext}
+      
+      Rules:
+      1. If user context is provided, strictly base the bullet points on those keywords/achievements.
+      2. Start each bullet with a strong action verb.
+      3. Focus on quantifiable achievements and metrics if possible.
+      4. Keep it concise and professional (1-2 lines per bullet).
+      5. Format: Start each line with a "• " character.
+      6. Return ONLY the bullet points. No intro/outro.`
+      
       const { text, error } = await generateAIContent(prompt)
       
       if (error || !text) throw new Error(error || "No content generated")
