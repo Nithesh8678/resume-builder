@@ -118,7 +118,8 @@ export function ResumeEditor() {
     const timeoutId = setTimeout(async () => {
       setIsSaving(true)
       try {
-        const result = await saveResume(resumeData, resumeId || undefined, resumeTitle)
+        const currentMode = searchParams.get("mode") || "manual"
+        const result = await saveResume(resumeData, resumeId || undefined, resumeTitle, currentMode)
         if (result.id && result.id !== resumeId) {
           // This case shouldn't happen often now as we have an ID, but good for safety
           setResumeId(result.id)
@@ -153,7 +154,8 @@ export function ResumeEditor() {
     
     setIsSaving(true)
     try {
-      const result = await saveResume(resumeData, resumeId || undefined, resumeTitle)
+      const currentMode = searchParams.get("mode") || "manual"
+      const result = await saveResume(resumeData, resumeId || undefined, resumeTitle, currentMode)
       if (result.id && result.id !== resumeId) {
         setResumeId(result.id)
         const params = new URLSearchParams(searchParams.toString())

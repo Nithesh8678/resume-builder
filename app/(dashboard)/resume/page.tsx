@@ -32,7 +32,9 @@ export default function ResumePage() {
   }, [])
 
   const handleEdit = (id: string) => {
-    router.push(`/editor?id=${id}`)
+    const resume = resumes.find(r => r.id === id)
+    const mode = resume?.mode || "manual"
+    router.push(`/editor?id=${id}&mode=${mode}`)
   }
 
   const handleDeleteClick = (id: string, e: React.MouseEvent) => {

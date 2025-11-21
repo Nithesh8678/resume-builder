@@ -24,7 +24,7 @@ export function ResumeBuilderModal({ isOpen, onClose, templateId }: ResumeBuilde
     setIsCreating(true)
     try {
       // Create the session immediately
-      const result = await saveResume(sampleResume)
+      const result = await saveResume(sampleResume, undefined, undefined, mode)
       
       if (result.id) {
         // Redirect with the new ID

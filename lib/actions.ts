@@ -5,7 +5,7 @@ import { ResumeData } from "@/types/resume"
 import { revalidatePath } from "next/cache"
 import { model } from "./gemini"
 
-export async function saveResume(data: ResumeData, id?: string, title?: string) {
+export async function saveResume(data: ResumeData, id?: string, title?: string, mode?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -17,6 +17,10 @@ export async function saveResume(data: ResumeData, id?: string, title?: string) 
     user_id: user.id,
     content: data as unknown as Record<string, unknown>,
     updated_at: new Date().toISOString(),
+  }
+
+  if (mode) {
+    resumePayload.mode = mode
   }
 
   if (title) {
@@ -78,7 +82,7 @@ export async function fetchUserResumes() {
 
   const { data, error } = await supabase
     .from("resumes")
-    .select("id, title, updated_at")
+    .select("id, title, updated_at, mode")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false })
 
