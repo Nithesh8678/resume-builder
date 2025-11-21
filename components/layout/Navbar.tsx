@@ -6,11 +6,35 @@ import { Button } from "@/components/ui/Button"
 import { motion, useScroll, useMotionValueEvent } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/utils/supabase/client"
+import { useRouter } from "next/navigation"
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
+  const [user, setUser] = React.useState<any>(null)
   const { scrollY } = useScroll()
+  const supabase = createClient()
+  const router = useRouter()
+
+  React.useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    getUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.refresh()
+  }
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 50)
@@ -55,9 +79,17 @@ export function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" size="sm">
-            Log in
-          </Button>
+          {user ? (
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Log out
+            </Button>
+          ) : (
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                Log in
+              </Button>
+            </Link>
+          )}
           <Button size="sm">
             Get Started
           </Button>
@@ -92,9 +124,17 @@ export function Navbar() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100">
-              <Button variant="ghost" className="w-full justify-start">
-                Log in
-              </Button>
+              {user ? (
+                <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
+                  Log out
+                </Button>
+              ) : (
+                <Link href="/login">
+                  <Button variant="ghost" className="w-full justify-start">
+                    Log in
+                  </Button>
+                </Link>
+              )}
               <Button className="w-full">
                 Get Started
               </Button>

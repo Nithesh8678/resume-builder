@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 
 const outfit = Outfit({ 
   subsets: ["latin"], 
@@ -29,11 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${jakarta.variable} ${outfit.variable} font-sans antialiased`}>
-        <Navbar />
-        <main className="min-h-screen bg-white overflow-hidden">
-          {children}
-        </main>
-        <Footer />
+        {children}
       </body>
     </html>
   );
