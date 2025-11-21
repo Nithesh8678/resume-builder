@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/Button"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { fetchUserResumes, deleteResume } from "@/lib/actions"
+import { fetchUserResumes, deleteResume, fetchProfile } from "@/lib/actions"
 import { Loader2, FileText, Trash2, Edit } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { formatDistanceToNow } from "date-fns"
@@ -14,21 +14,37 @@ export default function ResumePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [completeness, setCompleteness] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
-    const loadResumes = async () => {
+    const loadData = async () => {
       try {
-        const data = await fetchUserResumes()
-        setResumes(data || [])
+        const [resumesData, profileData] = await Promise.all([
+          fetchUserResumes(),
+          fetchProfile()
+        ])
+        
+        setResumes(resumesData || [])
+
+        // Calculate completeness
+        if (profileData) {
+          let score = 0
+          if (profileData.full_name) score += 20
+          if (profileData.email) score += 20
+          if (profileData.phone) score += 20
+          if (profileData.location) score += 20
+          if (profileData.github_url || profileData.linkedin_url || profileData.website_url) score += 20
+          setCompleteness(score)
+        }
       } catch (error) {
-        console.error("Error loading resumes:", error)
+        console.error("Error loading data:", error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadResumes()
+    loadData()
   }, [])
 
   const handleEdit = (id: string) => {
@@ -89,11 +105,14 @@ export default function ResumePage() {
             <h3 className="text-lg font-semibold text-white/90">Profile Completeness</h3>
             <p className="mt-1 text-sm text-blue-100">Complete your profile to unlock all features.</p>
           </div>
-          <span className="text-2xl font-bold">50%</span>
+          <span className="text-2xl font-bold">{completeness}%</span>
         </div>
         
         <div className="relative z-10 mt-6 h-2 w-full overflow-hidden rounded-full bg-black/20">
-          <div className="h-full w-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+          <div 
+            className="h-full rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)] transition-all duration-1000 ease-out" 
+            style={{ width: `${completeness}%` }}
+          />
         </div>
       </div>
 

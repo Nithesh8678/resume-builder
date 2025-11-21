@@ -5,10 +5,11 @@ import { motion } from "framer-motion"
 import { templates } from "@/lib/templates"
 import { sampleResume } from "@/data/sampleResume"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { ResumeBuilderModal } from "@/components/dashboard/ResumeBuilderModal"
+import { Loader2 } from "lucide-react"
 
-export default function TemplatesPage() {
+function TemplatesPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -81,5 +82,17 @@ export default function TemplatesPage() {
         templateId={selectedTemplateId}
       />
     </div>
+  )
+}
+
+export default function TemplatesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    }>
+      <TemplatesPageContent />
+    </Suspense>
   )
 }

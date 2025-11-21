@@ -183,3 +183,55 @@ export async function chatWithResumeAI(messages: { role: "user" | "assistant", c
     return { message: null, data: null, error: errorMessage }
   }
 }
+export async function fetchProfile() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single()
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+    console.error("Error fetching profile:", error)
+  }
+
+  return data
+}
+
+export async function updateProfile(data: any) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  // Upsert profile
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({
+      id: user.id,
+      ...data,
+      updated_at: new Date().toISOString(),
+    })
+
+  if (error) throw error
+  revalidatePath("/profile")
+  return { success: true }
+}
+
+export async function updatePassword(password: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  const { error } = await supabase.auth.updateUser({
+    password: password
+  })
+
+  if (error) throw error
+  return { success: true }
+}
