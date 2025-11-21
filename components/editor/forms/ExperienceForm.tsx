@@ -2,14 +2,20 @@
 
 import { ResumeData, Experience } from "@/types/resume"
 import { Button } from "@/components/ui/Button"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react"
+import { generateAIContent } from "@/lib/actions"
+import { useState } from "react"
+import { toast } from "sonner"
 
 interface ExperienceFormProps {
   data: Experience[]
   onChange: (data: Experience[]) => void
+  isAiEnabled?: boolean
 }
 
-export function ExperienceForm({ data, onChange }: ExperienceFormProps) {
+export function ExperienceForm({ data, onChange, isAiEnabled }: ExperienceFormProps) {
+  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null)
+
   const handleAdd = () => {
     onChange([
       ...data,
@@ -33,6 +39,30 @@ export function ExperienceForm({ data, onChange }: ExperienceFormProps) {
     const newData = [...data]
     newData[index] = { ...newData[index], [field]: value }
     onChange(newData)
+  }
+
+  const handleAiGenerate = async (index: number) => {
+    const exp = data[index]
+    if (!exp.position || !exp.company) {
+      toast.error("Please enter a Position and Company first")
+      return
+    }
+
+    setGeneratingIndex(index)
+    try {
+      const prompt = `Write a professional resume description for a ${exp.position} at ${exp.company}. Use bullet points and action verbs. Keep it concise.`
+      const { text, error } = await generateAIContent(prompt)
+      
+      if (error || !text) throw new Error(error || "No content generated")
+      
+      handleChange(index, "description", text)
+      toast.success("Description generated with AI")
+    } catch (error) {
+      console.error("AI Generation error:", error)
+      toast.error("Failed to generate content")
+    } finally {
+      setGeneratingIndex(null)
+    }
   }
 
   return (
@@ -111,7 +141,25 @@ export function ExperienceForm({ data, onChange }: ExperienceFormProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Description</label>
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-medium text-slate-700">Description</label>
+              {isAiEnabled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleAiGenerate(index)}
+                  disabled={generatingIndex === index}
+                  className="h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                >
+                  {generatingIndex === index ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  ) : (
+                    <Sparkles className="h-3 w-3 mr-1" />
+                  )}
+                  <span className="text-xs font-medium">Generate with AI</span>
+                </Button>
+              )}
+            </div>
             <textarea
               value={exp.description}
               onChange={(e) => handleChange(index, "description", e.target.value)}

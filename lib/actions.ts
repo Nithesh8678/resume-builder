@@ -84,3 +84,37 @@ export async function fetchUserResumes() {
   if (error) throw error
   return data
 }
+
+export async function deleteResume(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("User not authenticated")
+  }
+
+  const { error } = await supabase
+    .from("resumes")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id)
+
+  if (error) throw error
+  
+  revalidatePath('/resume')
+  return { success: true, error: null }
+}
+
+import { model } from "./gemini"
+
+export async function generateAIContent(prompt: string) {
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    return { text, error: null };
+  } catch (error: any) {
+    console.error("Error generating AI content:", error);
+    return { text: null, error: error.message || "Failed to generate content" };
+  }
+}

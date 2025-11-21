@@ -5,14 +5,18 @@ import { motion } from "framer-motion"
 import { templates } from "@/lib/templates"
 import { sampleResume } from "@/data/sampleResume"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useState } from "react"
+import { ResumeBuilderModal } from "@/components/dashboard/ResumeBuilderModal"
 
 export default function TemplatesPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const mode = searchParams.get('mode') || 'manual'
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState("modern")
 
   const handleUseTemplate = (templateId: string) => {
-    router.push(`/editor?template=${templateId}`)
+    setSelectedTemplateId(templateId)
+    setIsModalOpen(true)
   }
 
   return (
@@ -70,6 +74,12 @@ export default function TemplatesPage() {
           )
         })}
       </div>
+
+      <ResumeBuilderModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        templateId={selectedTemplateId}
+      />
     </div>
   )
 }

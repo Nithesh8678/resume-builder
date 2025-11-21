@@ -1,21 +1,46 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { X, PenTool, Sparkles, Bot } from "lucide-react"
+import { X, PenTool, Sparkles, Bot, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { useRouter } from "next/navigation"
+import { saveResume } from "@/lib/actions"
+import { sampleResume } from "@/data/sampleResume"
+import { useState } from "react"
+import { toast } from "sonner"
 
 interface ResumeBuilderModalProps {
   isOpen: boolean
   onClose: () => void
+  templateId: string
 }
 
-export function ResumeBuilderModal({ isOpen, onClose }: ResumeBuilderModalProps) {
+export function ResumeBuilderModal({ isOpen, onClose, templateId }: ResumeBuilderModalProps) {
   const router = useRouter()
+  const [isCreating, setIsCreating] = useState(false)
 
-  const handleSelect = (mode: string) => {
-    router.push(`/templates?mode=${mode}`)
-    onClose()
+  const handleSelect = async (mode: string) => {
+    setIsCreating(true)
+    try {
+      // Create the session immediately
+      const result = await saveResume(sampleResume)
+      
+      if (result.id) {
+        // Redirect with the new ID
+        router.push(`/editor?id=${result.id}&template=${templateId}&mode=${mode}`)
+        onClose()
+      } else {
+        throw new Error("Failed to create resume session")
+      }
+    } catch (error) {
+      console.error("Error creating session:", error)
+      // Fallback to old behavior if creation fails, or show error
+      // For now, let's just try to redirect without ID and let Editor handle it (fallback)
+      router.push(`/editor?template=${templateId}&mode=${mode}`)
+      onClose()
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   return (
@@ -66,8 +91,9 @@ export function ResumeBuilderModal({ isOpen, onClose }: ResumeBuilderModalProps)
                       variant="outline" 
                       className="w-full border-slate-200 hover:border-blue-500 hover:text-blue-600"
                       onClick={() => handleSelect('manual')}
+                      disabled={isCreating}
                     >
-                      Start Manual
+                      {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Start Manual"}
                     </Button>
                   </div>
                 </div>
@@ -88,8 +114,9 @@ export function ResumeBuilderModal({ isOpen, onClose }: ResumeBuilderModalProps)
                     <Button 
                       className="w-full bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200"
                       onClick={() => handleSelect('ai-assisted')}
+                      disabled={isCreating}
                     >
-                      Start with AI
+                      {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Start with AI"}
                     </Button>
                   </div>
                 </div>
@@ -108,8 +135,9 @@ export function ResumeBuilderModal({ isOpen, onClose }: ResumeBuilderModalProps)
                       variant="outline" 
                       className="w-full border-slate-200 hover:border-purple-500 hover:text-purple-600"
                       onClick={() => handleSelect('full-ai')}
+                      disabled={isCreating}
                     >
-                      Auto-Generate
+                      {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Auto-Generate"}
                     </Button>
                   </div>
                 </div>

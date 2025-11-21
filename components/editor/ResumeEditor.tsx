@@ -271,30 +271,35 @@ export function ResumeEditor() {
                 <PersonalInfoForm 
                   data={resumeData.personalInfo} 
                   onChange={(newData) => setResumeData({ ...resumeData, personalInfo: newData })} 
+                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
                 />
               )}
               {activeSection === "experience" && (
                 <ExperienceForm 
                   data={resumeData.experience} 
                   onChange={(newData) => setResumeData({ ...resumeData, experience: newData })} 
+                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
                 />
               )}
               {activeSection === "education" && (
                 <EducationForm 
                   data={resumeData.education} 
                   onChange={(newData) => setResumeData({ ...resumeData, education: newData })} 
+                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
                 />
               )}
               {activeSection === "skills" && (
                 <SkillsForm 
                   data={resumeData.skills} 
                   onChange={(newData) => setResumeData({ ...resumeData, skills: newData })} 
+                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
                 />
               )}
               {activeSection === "projects" && (
                 <ProjectsForm 
                   data={resumeData.projects} 
                   onChange={(newData) => setResumeData({ ...resumeData, projects: newData })} 
+                  isAiEnabled={searchParams.get("mode") === "ai-assisted"}
                 />
               )}
             </div>
