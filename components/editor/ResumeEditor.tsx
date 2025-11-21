@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { ResumeData } from "@/types/resume"
 import { sampleResume } from "@/data/sampleResume"
@@ -10,19 +10,138 @@ import { EducationForm } from "./forms/EducationForm"
 import { SkillsForm } from "./forms/SkillsForm"
 import { ProjectsForm } from "./forms/ProjectsForm"
 import { Button } from "@/components/ui/Button"
-import { ArrowLeft, Save, Download, Eye, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { ArrowLeft, Save, Download, Eye, PanelLeftClose, PanelLeftOpen, Loader2, Check } from "lucide-react"
 import Link from "next/link"
+import { saveResume, fetchResume } from "@/lib/actions"
 
 export function ResumeEditor() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const templateId = searchParams.get("template") || "modern"
+  const paramResumeId = searchParams.get("id")
+  
+  const [resumeId, setResumeId] = useState<string | null>(paramResumeId)
   const [resumeData, setResumeData] = useState<ResumeData>(sampleResume)
   const [activeSection, setActiveSection] = useState("personal")
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [isCreatingSession, setIsCreatingSession] = useState(false)
+  const [hasLoadError, setHasLoadError] = useState(false)
+
   const resumePreviewRef = useRef<HTMLDivElement>(null)
 
   const Template = getTemplateById(templateId)?.component || getTemplateById("modern")!.component
+
+  // Sync state with URL params
+  useEffect(() => {
+    if (paramResumeId && paramResumeId !== resumeId) {
+      setResumeId(paramResumeId)
+    }
+  }, [paramResumeId])
+
+  // Initialize Session: Fetch if ID exists, Create if not
+  useEffect(() => {
+    async function initializeSession() {
+      if (resumeId) {
+        // Fetch existing session
+        try {
+          setHasLoadError(false)
+          const { data, error } = await fetchResume(resumeId)
+          if (error) throw error
+          if (data && data.content) {
+            setResumeData(data.content as ResumeData)
+          }
+        } catch (error) {
+          console.error("Error loading resume:", error)
+          setHasLoadError(true)
+        } finally {
+          setIsInitialLoad(false)
+        }
+      } else if (isInitialLoad && !isCreatingSession) {
+        // Create new session immediately
+        setIsCreatingSession(true)
+        try {
+          // Create a new resume with sample data
+          const result = await saveResume(sampleResume)
+          if (result.id) {
+            setResumeId(result.id)
+            // Update URL immediately
+            const params = new URLSearchParams(searchParams.toString())
+            params.set("id", result.id)
+            router.replace(`?${params.toString()}`, { scroll: false })
+          }
+        } catch (error) {
+          console.error("Error creating session:", error)
+          setHasLoadError(true)
+        } finally {
+          setIsCreatingSession(false)
+          setIsInitialLoad(false)
+        }
+      }
+    }
+    
+    initializeSession()
+  }, [resumeId, isInitialLoad])
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (isInitialLoad || isCreatingSession || hasLoadError) return
+
+    const timeoutId = setTimeout(async () => {
+      setIsSaving(true)
+      try {
+        const result = await saveResume(resumeData, resumeId || undefined)
+        if (result.id && result.id !== resumeId) {
+          // This case shouldn't happen often now as we have an ID, but good for safety
+          setResumeId(result.id)
+          const params = new URLSearchParams(searchParams.toString())
+          params.set("id", result.id)
+          router.replace(`?${params.toString()}`, { scroll: false })
+        }
+        setLastSaved(new Date())
+      } catch (error) {
+        console.error("Error auto-saving:", error)
+      } finally {
+        setIsSaving(false)
+      }
+    }, 2000)
+
+    return () => clearTimeout(timeoutId)
+  }, [resumeData, resumeId, isInitialLoad, isCreatingSession, hasLoadError, searchParams, router])
+
+  if (isInitialLoad || isCreatingSession) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
+          <p className="text-slate-500">Initializing Editor...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const handleManualSave = async () => {
+    if (hasLoadError) return
+    
+    setIsSaving(true)
+    try {
+      const result = await saveResume(resumeData, resumeId || undefined)
+      if (result.id && result.id !== resumeId) {
+        setResumeId(result.id)
+        const params = new URLSearchParams(searchParams.toString())
+        params.set("id", result.id)
+        router.replace(`?${params.toString()}`, { scroll: false })
+      }
+      setLastSaved(new Date())
+    } catch (error) {
+      console.error("Error saving:", error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const handlePrint = () => {
     window.print()
@@ -46,12 +165,30 @@ export function ResumeEditor() {
             >
               {isSidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
             </Button>
-            <h1 className="text-lg font-bold text-slate-900 ml-2">Untitled Resume</h1>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-              Draft
-            </span>
+            <div className="flex flex-col">
+              <h1 className="text-lg font-bold text-slate-900 ml-2 leading-tight">
+                {resumeData.personalInfo.fullName || "Untitled Resume"}
+              </h1>
+              <div className="ml-2 flex items-center gap-2 text-xs text-slate-500">
+                {isSaving ? (
+                  <span className="flex items-center gap-1 text-blue-600">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+                  </span>
+                ) : lastSaved ? (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <Check className="h-3 w-3" /> Saved
+                  </span>
+                ) : (
+                  <span>Unsaved changes</span>
+                )}
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={handleManualSave} disabled={isSaving}>
+              <Save className="h-4 w-4 mr-2" />
+              Save
+            </Button>
             <Button variant="outline" className="gap-2" onClick={() => setIsPreviewOpen(true)}>
               <Eye className="h-4 w-4" />
               Preview
