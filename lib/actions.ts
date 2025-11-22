@@ -235,3 +235,208 @@ export async function updatePassword(password: string) {
   if (error) throw error
   return { success: true }
 }
+export async function analyzeResumeWithATS(resumeId: string, jobDescription: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  // Fetch resume
+  const { data: resume, error } = await supabase
+    .from("resumes")
+    .select("content")
+    .eq("id", resumeId)
+    .eq("user_id", user.id)
+    .single()
+
+  if (error || !resume) throw new Error("Resume not found")
+
+  const resumeContent = JSON.stringify(resume.content)
+
+  const prompt = `
+    Act as a premium Applicant Tracking System (ATS) and expert Resume Coach.
+    
+    Job Description:
+    "${jobDescription}"
+
+    Resume Data (JSON):
+    ${resumeContent}
+
+    Analyze the resume against the job description. 
+    Return a JSON object with the following structure (and ONLY valid JSON):
+    {
+      "score": number, // 0-100 integer
+      "summary": "string", // Brief overall assessment (2 sentences)
+      "missingKeywords": ["string", "string"], // Top 5-10 important keywords missing from resume
+      "criticalIssues": ["string"], // Formatting or major content issues (e.g. "Missing contact info", "Summary too long")
+      "improvements": ["string"] // Specific actionable advice to increase the score
+    }
+
+    Scoring Criteria:
+    - 90-100: Perfect match, highly likely to get interviewed.
+    - 75-89: Good match, minor tweaks needed.
+    - 50-74: Average, needs significant improvement.
+    - <50: Poor match, rewrite required.
+
+    Be strict but helpful. Focus on keyword matching, skills alignment, and relevance.
+  `
+
+  try {
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+    
+    // Clean up markdown code blocks if present
+    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim()
+    
+    return JSON.parse(jsonStr)
+  } catch (error) {
+    console.error("ATS Analysis Error:", error)
+    throw new Error("Failed to analyze resume")
+  }
+}
+
+
+
+export async function fetchUserCoverLetters() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data, error } = await supabase
+    .from("cover_letters")
+    .select("id, title, updated_at, content")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function fetchCoverLetter(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  const { data, error } = await supabase
+    .from("cover_letters")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function saveCoverLetter(data: any, id?: string, title?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  const payload: any = {
+    user_id: user.id,
+    content: data,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (title) payload.title = title
+
+  if (id) {
+    const { error } = await supabase
+      .from("cover_letters")
+      .update(payload)
+      .eq("id", id)
+      .eq("user_id", user.id)
+    if (error) throw error
+    return { id, error: null }
+  } else {
+    if (!title) payload.title = "Untitled Cover Letter"
+    const { data: newDoc, error } = await supabase
+      .from("cover_letters")
+      .insert(payload)
+      .select("id")
+      .single()
+    if (error) throw error
+    return { id: newDoc.id, error: null }
+  }
+}
+
+export async function deleteCoverLetter(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  const { error } = await supabase
+    .from("cover_letters")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id)
+
+  if (error) throw error
+  revalidatePath("/coverletter")
+  return { success: true }
+}
+
+export async function generateCoverLetterAI(jobDescription: string, resumeId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) throw new Error("Not authenticated")
+
+  // Fetch resume to get context
+  const { data: resume } = await supabase
+    .from("resumes")
+    .select("content")
+    .eq("id", resumeId)
+    .single()
+
+  if (!resume) throw new Error("Resume not found")
+
+  const resumeContent = JSON.stringify(resume.content)
+
+  const prompt = `
+    Act as an expert career coach and professional writer.
+    Write a compelling cover letter based on the following:
+
+    Job Description:
+    "${jobDescription}"
+
+    Candidate's Resume Data:
+    ${resumeContent}
+
+    Requirements:
+    1. Professional, engaging tone.
+    2. Highlight relevant skills from the resume that match the JD.
+    3. Structure:
+       - Header (Candidate Info)
+       - Salutation
+       - Opening (Hook)
+       - Body Paragraphs (Experience & Fit)
+       - Closing (Call to Action)
+       - Sign-off
+    
+    Return a JSON object with this structure:
+    {
+      "jobTitle": "Target Job Title",
+      "companyName": "Target Company",
+      "hiringManager": "Hiring Manager Name (or Hiring Team)",
+      "body": "The full body of the letter (HTML formatted with <p> tags for paragraphs)"
+    }
+  `
+
+  try {
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim()
+    return JSON.parse(jsonStr)
+  } catch (error) {
+    console.error("Cover Letter Generation Error:", error)
+    throw new Error("Failed to generate cover letter")
+  }
+}

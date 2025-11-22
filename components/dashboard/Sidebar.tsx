@@ -3,19 +3,24 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { FileText, PenTool, User, Settings, LogOut } from "lucide-react"
+import { FileText, PenTool, User, Settings, LogOut, CheckSquare, LayoutTemplate } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
 
 const sidebarItems = [
   {
-    title: "Resumes",
+    title: "My Resumes",
     href: "/resume",
     icon: FileText,
   },
   {
-    title: "Cover Letters",
+    title: "ATS Checker",
+    href: "/ats-checker",
+    icon: CheckSquare,
+  },
+  {
+    title: "CV",
     href: "/coverletter",
     icon: PenTool,
   },
