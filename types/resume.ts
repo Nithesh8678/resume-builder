@@ -6,6 +6,7 @@ export interface SocialLink {
 export interface Education {
   school: string;
   degree: string;
+  field: string;
   startDate: string;
   endDate: string;
   current: boolean;
@@ -44,6 +45,7 @@ export interface ResumeData {
     website?: string;
     linkedin?: string;
     github?: string;
+    photoUrl?: string;
     summary: string;
     jobTitle: string;
   };

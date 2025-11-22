@@ -12,9 +12,10 @@ import { ProjectsForm } from "./forms/ProjectsForm"
 import { Button } from "@/components/ui/Button"
 import { ArrowLeft, Save, Download, Eye, PanelLeftClose, PanelLeftOpen, Loader2, Check, Pencil } from "lucide-react"
 import Link from "next/link"
-import { saveResume, fetchResume } from "@/lib/actions"
+import { deleteResume, saveResume, fetchResume } from "@/lib/actions"
 import { AiChatAssistant } from "./AiChatAssistant"
 import { User, Briefcase, GraduationCap, Wrench, FolderGit2 } from "lucide-react"
+import { ExitConfirmationModal } from "./ExitConfirmationModal"
 
 
 type Section = "personal" | "experience" | "education" | "skills" | "projects"
@@ -46,6 +47,10 @@ export function ResumeEditor() {
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
   const [hasLoadError, setHasLoadError] = useState(false)
+  
+  // New state for exit confirmation
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false)
+  const [isDiscarding, setIsDiscarding] = useState(false)
 
   const resumePreviewRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
@@ -170,6 +175,34 @@ export function ResumeEditor() {
     }
   }
 
+  const handleExitSave = async () => {
+    setIsSaving(true)
+    try {
+      const currentMode = searchParams.get("mode") || "manual"
+      await saveResume(resumeData, resumeId || undefined, resumeTitle, currentMode)
+      router.push('/resume')
+    } catch (error) {
+      console.error("Error saving on exit:", error)
+      setIsSaving(false)
+    }
+  }
+
+  const handleExitDiscard = async () => {
+    if (!resumeId) {
+      router.push('/resume')
+      return
+    }
+    
+    setIsDiscarding(true)
+    try {
+      await deleteResume(resumeId)
+      router.push('/resume')
+    } catch (error) {
+      console.error("Error discarding:", error)
+      setIsDiscarding(false)
+    }
+  }
+
   const handleTitleSubmit = () => {
     setIsEditingTitle(false)
     // Trigger save immediately when title changes
@@ -182,13 +215,24 @@ export function ResumeEditor() {
 
   return (
     <>
+      <ExitConfirmationModal
+        isOpen={isExitModalOpen}
+        onClose={() => setIsExitModalOpen(false)}
+        onSave={handleExitSave}
+        onDiscard={handleExitDiscard}
+        isSaving={isSaving}
+        isDiscarding={isDiscarding}
+      />
       <div className="flex h-screen flex-col print:hidden">
         {/* Top Bar */}
         <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm z-10">
           <div className="flex items-center gap-4">
-            <Link href="/templates" className="text-slate-500 hover:text-slate-900 transition-colors">
+            <button 
+              onClick={() => setIsExitModalOpen(true)}
+              className="text-slate-500 hover:text-slate-900 transition-colors"
+            >
               <ArrowLeft className="h-5 w-5" />
-            </Link>
+            </button>
             <div className="h-6 w-px bg-slate-200" />
             <Button 
               variant="ghost" 
@@ -290,6 +334,7 @@ export function ResumeEditor() {
                         data={resumeData.personalInfo} 
                         onChange={(newData) => setResumeData({ ...resumeData, personalInfo: newData })} 
                         isAiEnabled={searchParams.get("mode") === "ai-assisted"}
+                        hasPhoto={getTemplateById(templateId)?.hasPhoto}
                       />
                     )}
                     {activeSection === "education" && (

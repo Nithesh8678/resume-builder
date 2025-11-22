@@ -42,7 +42,7 @@ function TemplatesPageContent() {
               className="group relative bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-xl hover:border-blue-500/50 transition-all duration-300 flex flex-col"
             >
               {/* Live Preview Container */}
-              <div className="aspect-[210/297] bg-slate-100 relative overflow-hidden group-hover:bg-slate-50 transition-colors">
+              <div className="aspect-[1/1] bg-slate-100 relative overflow-hidden group-hover:bg-slate-50 transition-colors">
                 {/* Scaled Preview */}
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="origin-top-left transform scale-[0.25] w-[400%] h-[400%] pointer-events-none select-none p-8">

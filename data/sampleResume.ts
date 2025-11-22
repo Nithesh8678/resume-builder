@@ -34,7 +34,8 @@ export const sampleResume: ResumeData = {
   education: [
     {
       school: "University of Technology",
-      degree: "B.S. Computer Science",
+      degree: "B.S.",
+      field: "Computer Science",
       location: "Austin, TX",
       startDate: "2014-09",
       endDate: "2018-05",

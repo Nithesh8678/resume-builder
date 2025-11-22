@@ -128,7 +128,7 @@ export function ModernTemplate({ data }: TemplateProps) {
                 {education.map((edu, index) => (
                   <div key={index}>
                     <h3 className="font-bold text-slate-900">{edu.school}</h3>
-                    <p className="text-sm text-slate-700">{edu.degree}</p>
+                    <p className="text-sm text-slate-700">{edu.degree} in {edu.field}</p>
                     <div className="flex justify-between text-xs text-slate-500 mt-1">
                       <span>{edu.startDate} - {edu.endDate}</span>
                     </div>

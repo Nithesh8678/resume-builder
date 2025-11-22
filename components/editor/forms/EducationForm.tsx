@@ -22,6 +22,7 @@ export function EducationForm({ data, onChange, isAiEnabled }: EducationFormProp
       {
         school: "",
         degree: "",
+        field: "",
         startDate: "",
         endDate: "",
         current: false,
@@ -114,7 +115,17 @@ export function EducationForm({ data, onChange, isAiEnabled }: EducationFormProp
                 value={edu.degree}
                 onChange={(e) => handleChange(index, "degree", e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Bachelor's in Computer Science"
+                placeholder="Bachelor's, Master's, etc."
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Field of Study</label>
+              <input
+                type="text"
+                value={edu.field}
+                onChange={(e) => handleChange(index, "field", e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Computer Science, Business, etc."
               />
             </div>
             <div className="space-y-2">

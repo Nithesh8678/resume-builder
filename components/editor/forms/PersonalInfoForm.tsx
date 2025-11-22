@@ -5,18 +5,29 @@ import { generateAIContent } from "@/lib/actions"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { ImageUpload } from "@/components/editor/ImageUpload"
+
 interface PersonalInfoFormProps {
   data: ResumeData["personalInfo"]
   onChange: (data: ResumeData["personalInfo"]) => void
   isAiEnabled?: boolean
+  hasPhoto?: boolean
 }
 
-export function PersonalInfoForm({ data, onChange, isAiEnabled }: PersonalInfoFormProps) {
+export function PersonalInfoForm({ data, onChange, isAiEnabled, hasPhoto }: PersonalInfoFormProps) {
   const [isGenerating, setIsGenerating] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     onChange({ ...data, [name]: value })
+  }
+
+  const handlePhotoChange = (url: string) => {
+    onChange({ ...data, photoUrl: url })
+  }
+
+  const handlePhotoRemove = () => {
+    onChange({ ...data, photoUrl: undefined })
   }
 
   const handleAiGenerate = async () => {
@@ -56,7 +67,19 @@ export function PersonalInfoForm({ data, onChange, isAiEnabled }: PersonalInfoFo
 
   return (
     <div className="space-y-4 p-6 bg-white rounded-lg shadow-sm border border-slate-200">
-      <h3 className="text-lg font-semibold text-slate-900 mb-4">Personal Information</h3>
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-lg font-semibold text-slate-900">Personal Information</h3>
+      </div>
+      
+      {hasPhoto && (
+        <div className="mb-6 flex justify-center">
+          <ImageUpload
+            value={data.photoUrl}
+            onChange={handlePhotoChange}
+            onRemove={handlePhotoRemove}
+          />
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
